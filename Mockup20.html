@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Anulación con Motivo Obligatorio</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    .box { border:1px solid #000; padding:2rem; max-width:520px; margin:2rem auto; display:flex; flex-direction:column; gap:1rem; background:#fff; }
+    .panel-box { border:1px solid #000; padding:1rem; margin-top:1rem; border-radius:0; }
+    .success { background:#d5e8d4; border-color:#82b366; }
+    .error { background:#f8d7da; border-color:#c9302c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="box">
+      <h3 class="text-center">Anulación con Motivo</h3>
+
+      <div class="mb-3">
+        <label class="form-label">Selecciona Pedido</label>
+        <select class="form-select" id="pedido">
+          <option value="">-- Seleccionar --</option>
+          <option value="pedido-789|pendiente">Pedido #789 - Pendiente</option>
+          <option value="pedido-456|enviado">Pedido #456 - Enviado</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Motivo de Anulación</label>
+        <select class="form-select" id="motivoPredefinido">
+          <option value="">-- Seleccionar motivo --</option>
+          <option value="Producto incorrecto">Producto incorrecto</option>
+          <option value="Demora en entrega">Demora en entrega</option>
+          <option value="Error de compra">Error de compra</option>
+        </select>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button id="btnAnular" class="btn btn-danger w-50">Anular Pedido</button>
+        <button id="btnVerAnulaciones" class="btn btn-secondary w-50">Ver Anulaciones</button>
+      </div>
+    </div>
+
+    <div id="panel-success" class="panel-box success" style="display:none;">
+      <h5>Anulación guardada</h5>
+      <p id="msg-success"></p>
+    </div>
+
+    <div id="panel-error" class="panel-box error" style="display:none;">
+      <h5>Error</h5>
+      <p id="msg-error"></p>
+    </div>
+
+    <div id="panel-list" class="panel-box" style="display:none;">
+      <h5>Anulaciones registradas</h5>
+      <ul id="lista-anulaciones"></ul>
+    </div>
+
+  </div>
+
+  <script>
+    const anulaciones = [];
+
+    const btnAnular = document.getElementById('btnAnular');
+    const btnVerAnulaciones = document.getElementById('btnVerAnulaciones');
+
+    function ocultarPanels() {
+      document.getElementById('panel-success').style.display = 'none';
+      document.getElementById('panel-error').style.display = 'none';
+      document.getElementById('panel-list').style.display = 'none';
+    }
+
+    function mostrarError(text) {
+      ocultarPanels();
+      document.getElementById('msg-error').innerText = text;
+      document.getElementById('panel-error').style.display = 'block';
+    }
+
+    function mostrarSuccess(text) {
+      ocultarPanels();
+      document.getElementById('msg-success').innerText = text;
+      document.getElementById('panel-success').style.display = 'block';
+    }
+
+    btnAnular.addEventListener('click', () => {
+      ocultarPanels();
+
+      const pedidoVal = document.getElementById('pedido').value;
+      if (!pedidoVal) {
+        alert('Selecciona un pedido primero');
+        return;
+      }
+
+      const [pedidoId, estado] = pedidoVal.split('|');
+      const motivo = document.getElementById('motivoPredefinido').value.trim();
+
+      // Escenario 2: Motivo obligatorio
+      if (!motivo) {
+        mostrarError('Debe ingresar un motivo para anular');
+        return;
+      }
+
+      // confirmación antes de anular
+      const confirmar = confirm('¿Confirma la anulación del pedido ' + pedidoId + '?\nMotivo: ' + motivo);
+      if (!confirmar) {
+        // Escenario 3: cancelación
+        mostrarError('Cancelación de anulación: el pedido sigue activo y sin cambios');
+        return;
+      }
+
+      // Escenario 2 (no permitido)
+      if (estado === 'enviado') {
+        mostrarError('No se puede anular este pedido');
+        return;
+      }
+
+      // Escenario 1: registro exitoso
+      const now = new Date();
+      const registro = {
+        pedidoId,
+        estadoAnulado: 'cancelado',
+        motivo,
+        fecha: now.toISOString()
+      };
+      anulaciones.push(registro);
+
+      mostrarSuccess('Pedido ' + pedidoId + ' anulado correctamente. Motivo: "' + motivo + '"');
+    });
+
+    btnVerAnulaciones.addEventListener('click', () => {
+      ocultarPanels();
+      const lista = document.getElementById('lista-anulaciones');
+      lista.innerHTML = '';
+      if (anulaciones.length === 0) {
+        lista.innerHTML = '<li>No hay anulaciones registradas</li>';
+      } else {
+        anulaciones.forEach(a => {
+          const li = document.createElement('li');
+          li.innerText = a.pedidoId + ' | ' + a.motivo + ' | ' + new Date(a.fecha).toLocaleString();
+          lista.appendChild(li);
+        });
+      }
+      document.getElementById('panel-list').style.display = 'block';
+    });
+  </script>
+</body>
+</html>
